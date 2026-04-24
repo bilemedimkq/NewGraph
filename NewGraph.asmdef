@@ -1,3 +1,16 @@
 {
-	"name": "NewGraph"
+    "name": "NewGraph",
+    "rootNamespace": "",
+    "references": [
+        "GUID:fb659f363ba59e91bf12c6d063a45682"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

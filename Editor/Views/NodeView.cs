@@ -102,7 +102,7 @@ namespace NewGraph {
             SerializedProperty prop = view.listProperty;
             PortInfo info = view.portInfo;
             view.Unbind();
-            view.RemoveFromHierarchy();
+            view?.RemoveFromHierarchy();
 
             int index = portLists.IndexOf(view);
             portLists[index] = null;
@@ -360,7 +360,7 @@ namespace NewGraph {
         }
 
         private void SettingsChanged() {
-            style.width = Settings.nodeWidth;
+            // style.width = Settings.nodeWidth;
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using GraphViewBase;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -26,6 +27,7 @@ namespace NewGraph {
         private EdgeDropMenu edgeDropMenu;
         private Dictionary<Actions, Action<object>> internalActions;
         private Dictionary<object, NodeView> dataToViewLookup = new Dictionary<object, NodeView>();
+        public bool isGraphLoaded { get; protected set; }
 
         public Vector2 GetViewScale() {
             return graphView.GetCurrentScale();
@@ -197,7 +199,12 @@ namespace NewGraph {
         /// Called if a paste operation should be started...
         /// </summary>
         /// <param name="data">currently unused, check selected lists to get the actual selected objects...</param>
-        public void OnPaste(object data = null) {
+        ///
+        public DateTime nextPaste = DateTime.Now;
+        public void OnPaste(object data = null)
+        {
+            if (DateTime.Now < nextPaste)
+                return;
 			if (graphView.IsFocusedElementNullOrNotBindable) {
 				copyPasteHandler.Resolve(graphData, (nodes) => {
 					Undo.RecordObject(graphData.BaseObject, "Paste Action");
@@ -207,6 +214,8 @@ namespace NewGraph {
 					OnNodesPasted?.Invoke(nodes);
 				}, Reload);
 			}
+
+            nextPaste = DateTime.Now.AddSeconds(1);
         }
 
         /// <summary>
@@ -241,59 +250,31 @@ namespace NewGraph {
         /// <param name="data"></param>
         public void OnDelete(object data = null) {
 			if (graphView.IsFocusedElementNullOrNotBindable) {
-				bool isDirty = false;
+            void ResetEdge(BaseEdge edge)
+            {
+                PortView outputPort = edge.GetOutputPort() as PortView;
+                outputPort.Disconnect(edge);
+                PortView inputPort = edge.GetInputPort() as PortView;
+                if(inputPort.m_Connections.Count == 1) {
+                    inputPort.Disconnect(edge);
+                } 
+                edge.RemoveFromHierarchy();
+            }
 
-				// go over every selected edge...
-				graphView.ForEachSelectedEdgeDo((edge) => {
-					isDirty = true;
-					// get the ouput port, this is where the referenced node sits
-					PortView outputPort = edge.GetOutputPort() as PortView;
-					outputPort.Reset();
-				});
+            graphView.ForEachSelectedEdgeDo(ResetEdge);
 
-				// go over every selected node and build a list of nodes that should be deleted....
-				List<NodeModel> nodesToRemove = new List<NodeModel>();
-				graphView.ForEachSelectedNodeDo((node) => {
-					NodeView scopedNodeView = node as NodeView;
-					if (scopedNodeView != null) {
-						nodesToRemove.Add(scopedNodeView.controller.nodeItem);
-						isDirty = true;
-					}
-				});
+            graphView.ForEachSelectedNodeDo((node) =>
+            {
+                if (node is not NodeView scopedNodeView) return;
 
-				// if we have nodes marked for deletion...
-				if (nodesToRemove.Count > 0) {
-					// tidy up all ports before actual deletion...
-					graphView.ForEachPortDo((basePort) => {
-						// we can ignore input ports, so check that we only operate on output ports...
-						if (basePort.Direction == Direction.Output) {
-							PortView port = basePort as PortView;
-							// check that the port actually is not empty...
-							if (port.boundProperty != null && port.boundProperty.managedReferenceValue != null) {
-								// loop over the list of nodes that should be removed...
-								foreach (NodeModel nodeToRemove in nodesToRemove) {
-									// if the ports actual object value is equal to a node that should be removed...
-									if (nodeToRemove.nodeData == port.boundProperty.managedReferenceValue) {
-										// reset / nullify the port value to we don't have invisible nodes in our graph...
-										port.Reset();
-										break;
-									}
-								}
-							}
-						}
-					});
-				}
+                scopedNodeView.inputPort?.m_Connections.ToList().ForEach(ResetEdge);
+                scopedNodeView.outputPorts.ToList().ForEach(port => port.m_Connections.ToList().ForEach(ResetEdge));
 
-				// if we are dirty and objects were changed....
-				if (isDirty) {
-					// unbind and reload this graph to avoid serialization issues...
-					graphView.Unbind();
-					//graphView.schedule.Execute(() => {
-					graphData.RemoveNodes(nodesToRemove);
-					Reload();
-					//});
-				}
-			}
+                graphData.RemoveNode(scopedNodeView.controller.nodeItem);
+
+                scopedNodeView.RemoveFromHierarchy();
+            });
+            }
         }
 
         /// <summary>
@@ -346,7 +327,7 @@ namespace NewGraph {
         /// </summary>
         public void Reload() {
             Logger.Log("reload");
-            if (graphData != null /*&& graphData.BaseObject != null*/) {
+            if (graphData != null && graphData.BaseObject != null) {
                 Load(graphData);
             }
         }
@@ -461,13 +442,20 @@ namespace NewGraph {
                     // go over every node...
                     for (int i = 0; i < nodes.Count; i++) {
                         NodeModel node = nodes[i];
-
+                        if (node.nodeData == null)
+                        {
+                            nodes.Remove(node);
+                            i--;
+                            continue;
+                        }
                         // initialize the node...
                         node.Initialize();
 
                         // find the acompanying nodeData serializedProperty and set it...
                         SerializedProperty nodeSerializedData = nodesProperty.GetArrayElementAtIndex(i);
                         node.SetData(nodeSerializedData);
+                        
+                        if(dataToViewLookup.ContainsKey(node.nodeData)) continue;
 
                         // create a node controller for this node...
                         NodeController nodeController = new NodeController(node, this);
@@ -512,7 +500,7 @@ namespace NewGraph {
 
                 isLoading = false;
 				OnGraphLoaded?.Invoke(this.graphData);
-
+                isGraphLoaded = true;
 				Logger.Log("data loaded");
             });
         }

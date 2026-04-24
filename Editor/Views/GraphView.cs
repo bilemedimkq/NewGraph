@@ -18,16 +18,20 @@ namespace NewGraph {
         public GraphView(VisualElement parent, VisualElement root, Action<Actions, object> OnAction) {
             GraphWindow.OnGlobalKeyDown -= OnKeyDown;
             GraphWindow.OnGlobalKeyDown += OnKeyDown;
+            
+            // root.RegisterCallback<MouseDownEvent>((evt) => { OnMouseDown(evt); });
+            // graphViewRoot = parent.Q<VisualElement>(nameof(graphViewRoot));
+            
 			void MouseDownEvent(MouseDownEvent evt) {
 				OnMouseDown(evt);
 			}
             root.RegisterCallback<MouseDownEvent>(MouseDownEvent);
 
-			void DetachFromPanelEvent(DetachFromPanelEvent evt) {
-				root.UnregisterCallback<MouseDownEvent>(MouseDownEvent);
-				root.UnregisterCallback<DetachFromPanelEvent>(DetachFromPanelEvent);
-			}
-			root.RegisterCallback<DetachFromPanelEvent>(DetachFromPanelEvent);
+			// void DetachFromPanelEvent(DetachFromPanelEvent evt) {
+			// 	root.UnregisterCallback<MouseDownEvent>(MouseDownEvent);
+			// 	root.UnregisterCallback<DetachFromPanelEvent>(DetachFromPanelEvent);
+			// }
+			// root.RegisterCallback<DetachFromPanelEvent>(DetachFromPanelEvent);
 
 			graphViewRoot = parent.Q<VisualElement>(nameof(graphViewRoot));
             graphViewRoot.Add(this);
@@ -72,18 +76,23 @@ namespace NewGraph {
             //this.Unbind();
 
             foreach (BaseNode node in ContentContainer.Nodes) {
-                node.RemoveFromHierarchy();
+                node?.RemoveFromHierarchy();
             }
 
             foreach (BasePort port in ContentContainer.Ports) {
-                port.RemoveFromHierarchy();
+                port?.RemoveFromHierarchy();
             }
 
             foreach (BaseEdge edge in ContentContainer.Edges) {
-                edge.RemoveFromHierarchy();
+                edge?.RemoveFromHierarchy();
             }
         }
 
+        public void ForEachEdgeDo(Action<BaseEdge> callback) {
+            foreach (BaseEdge edge in ContentContainer.Edges) {
+                callback(edge);
+            }
+        }
 
         public BaseNode GetFirstSelectedNode() {
             return ContentContainer.NodesSelected.First();

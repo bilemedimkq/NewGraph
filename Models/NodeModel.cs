@@ -86,10 +86,6 @@ namespace NewGraph {
         [NonSerialized]
         private SerializedProperty nameProperty;
         [NonSerialized]
-        private SerializedProperty nodeXProperty;
-        [NonSerialized]
-        private SerializedProperty nodeYProperty;
-        [NonSerialized]
         private static Dictionary<Type, NodeAttribute> nodeInfo = new Dictionary<Type, NodeAttribute>();
         [NonSerialized]
         public Type nodeType;
@@ -154,7 +150,7 @@ namespace NewGraph {
         }
 
         public void Initialize() {
-            nodeType = nodeData.GetType();
+            nodeType = nodeData?.GetType();
             nodeAttribute = GetNodeAttribute(nodeType);
         }
 
@@ -187,9 +183,8 @@ namespace NewGraph {
             this.serializedProperty = serializedProperty;
             nodeDataSerializedProperty = serializedProperty.FindPropertyRelative(nameof(nodeData));
             nameProperty = serializedProperty.FindPropertyRelative(nameof(name));
-            nodeXProperty = serializedProperty.FindPropertyRelative(nameof(nodeX));
-            nodeYProperty = serializedProperty.FindPropertyRelative(nameof(nodeY));
             dataIsSet = true;
+            serializedProperty.serializedObject.ApplyModifiedProperties();
         }
 #endif
     }
