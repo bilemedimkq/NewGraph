@@ -15,8 +15,10 @@ namespace NewGraph {
 
 		public event Action<List<NodeModel>> OnNodesPasted;
 		public event Action<IGraphModelData> OnGraphLoaded;
-		public event Action<IGraphModelData> OnBeforeGraphLoaded;
-
+        public event Action<IGraphModelData> OnBeforeGraphLoaded;
+		public static event Action<NodeView> OnNodeSelected;
+        // publics EventHandler<NodeView> test;
+        
 		public IGraphModelData graphData = null;
         public CopyPasteHandler copyPasteHandler = new CopyPasteHandler();
         public GraphView graphView;
@@ -163,6 +165,7 @@ namespace NewGraph {
                 inspector.SetSelectedNodeInfoActive(selectedNodesCount, graphView.GetSelectedEdgesCount(), true);
             } else if(selectedNodesCount > 0) {
                 NodeView selectedNode = graphView.GetFirstSelectedNode() as NodeView;
+                OnNodeSelected?.Invoke(selectedNode);
                 inspector.SetInspectorContent(selectedNode.GetInspectorContent(), graphData.SerializedGraphData);
             }
         }
