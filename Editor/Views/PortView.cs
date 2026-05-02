@@ -103,7 +103,12 @@ namespace NewGraph {
 
         private void ColorizeEdgeAndPort(EdgeView edge) {
             Type nodeType = (edge.Input as PortView).type;
-            targetColor = NodeModel.GetNodeAttribute(nodeType).color;
+            
+            if (Attribute.IsDefined(nodeType, typeof(NodeAttribute)))
+                targetColor = NodeModel.GetNodeAttribute(nodeType).color;
+            else
+                targetColor = default;
+
             edge.currentUnselectedColor = (targetColor == default) ? Settings.colorUnselected : targetColor;
             edge.InputColor = edge.OutputColor = edge.currentUnselectedColor;
 
