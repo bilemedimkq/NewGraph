@@ -12,7 +12,9 @@ namespace NewGraph {
 
         public Type type;
         public SerializedProperty boundProperty;
+        public SerializedProperty nodeDataSerializedProperty;
         public List<Type> connectableTypes;
+        public bool isFieldDefinedInputPort = false;
 
         private Action connectionChangedCallback;
         private Func<Type,Type, bool> isValidConnectionCheck;
@@ -43,15 +45,28 @@ namespace NewGraph {
                 PortView inputPort = edge.Input as PortView;
                 PortView outputPort = edge.Output as PortView;
 
-                if (outputPort.boundProperty.managedReferenceValue != inputPort.boundProperty.managedReferenceValue) {
-                    //Logger.Log("Connect: change values");
-                    //Undo.RegisterCompleteObjectUndo(outputPort.boundProperty.serializedObject.targetObject, "Add Connection");
-                    //outputPort.boundProperty.managedReferenceValue = inputPort.boundProperty.managedReferenceValue;
-                    outputPort.boundProperty.managedReferenceId = inputPort.boundProperty.managedReferenceId;
-                    //EditorUtility.SetDirty(outputPort.boundProperty.serializedObject.targetObject);
-                    outputPort.boundProperty.serializedObject.ApplyModifiedProperties();
-                    outputPort.connectionChangedCallback?.Invoke();
-                    connectionChangedCallback?.Invoke();
+                if (inputPort.isFieldDefinedInputPort) {
+                    // Field-defined input port: the INPUT field stores the upstream node reference.
+                    // We use the OUTPUT node's nodeDataSerializedProperty (the node's own managed ref)
+                    // so we get the correct source node ID — not the (possibly empty) output field value.
+                    long sourceNodeId = outputPort.nodeDataSerializedProperty != null
+                        ? outputPort.nodeDataSerializedProperty.managedReferenceId
+                        : outputPort.boundProperty.managedReferenceId;
+
+                    if (inputPort.boundProperty.managedReferenceId != sourceNodeId) {
+                        inputPort.boundProperty.managedReferenceId = sourceNodeId;
+                        inputPort.boundProperty.serializedObject.ApplyModifiedProperties();
+                        inputPort.connectionChangedCallback?.Invoke();
+                        connectionChangedCallback?.Invoke();
+                    }
+                } else {
+                    // Primary input port: the OUTPUT field stores the downstream node reference.
+                    if (outputPort.boundProperty.managedReferenceValue != inputPort.boundProperty.managedReferenceValue) {
+                        outputPort.boundProperty.managedReferenceId = inputPort.boundProperty.managedReferenceId;
+                        outputPort.boundProperty.serializedObject.ApplyModifiedProperties();
+                        outputPort.connectionChangedCallback?.Invoke();
+                        connectionChangedCallback?.Invoke();
+                    }
                 }
                 ColorizeEdgeAndPort(edge as EdgeView);
             }

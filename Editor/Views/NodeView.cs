@@ -21,6 +21,7 @@ namespace NewGraph {
 
         public NodeController controller;
         public PortView inputPort = null;
+        public List<PortView> inputPorts = new List<PortView>();
         public List<PortView> outputPorts = new List<PortView>();
         public List<PortListView> portLists = new List<PortListView>();
         public List<Foldout> foldouts = new List<Foldout>();
@@ -68,6 +69,7 @@ namespace NewGraph {
                 controller.DoForEachPortProperty(CreateOuputPortUI);
                 controller.DoForInputPortProperty(CreateInputPortUI);
                 controller.DoForEachPortListProperty(CreatePortListUI);
+                controller.DoForEachInputPortProperty(CreateExtraInputPortUI);
                 controller.DoForEachPropertyOrGroup(new[] { ExtensionContainer, inspectorContent }, CreateGroupUI, CreatePropertyUI);
 
                 // hide empty groups
@@ -119,13 +121,22 @@ namespace NewGraph {
             inputPort = CreatePortUI(info, property);
         }
 
+        private void CreateExtraInputPortUI(PortInfo info, SerializedProperty property) {
+            PortView port = CreatePortUI(info, property);
+            port.isFieldDefinedInputPort = true;
+            inputPorts.Add(port);
+        }
+        
         private void CreateOuputPortUI(PortInfo info, SerializedProperty property) {
             outputPorts.Add(CreatePortUI(info, property));
         }
 
         public PortView CreatePortUI(PortInfo info, SerializedProperty property) {
             PortView port = new PortView(info, property.Copy());
-
+            // Give every port a reference to its owning node's data property so that
+            // Connect() can retrieve the source node's managed reference ID reliably.
+            port.nodeDataSerializedProperty = controller.GetNodeDataProperty();
+            
             if (info.portDisplay.name != null) {
                 port.PortName = info.portDisplay.name;
             } else {

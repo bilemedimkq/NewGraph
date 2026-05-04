@@ -17,6 +17,7 @@ namespace NewGraph {
 
         public PortInfo inputPort = null;
         public List<PortInfo> ports = new List<PortInfo>();
+        public List<PortInfo> inputPorts = new List<PortInfo>();
         public List<PortInfo> portLists = new List<PortInfo>();
         public List<PropertyInfo> graphPropertiesAndGroups = new List<PropertyInfo>();
         private AttributesBag attributeBag = new AttributesBag();
@@ -94,6 +95,10 @@ namespace NewGraph {
 
             //[Port]
             int GetPortAttribute() {
+                PortBaseAttribute portAttr = (PortBaseAttribute)currentAttribute;
+                if (portAttr.direction == PortDirection.Input) {
+                    return GetPortAttributeBase(ref inputPorts, attributeBag.type);
+                }
                 return GetPortAttributeBase(ref ports, attributeBag.type);
             }
 

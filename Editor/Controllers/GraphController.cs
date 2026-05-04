@@ -445,20 +445,13 @@ namespace NewGraph {
                     // go over every node...
                     for (int i = 0; i < nodes.Count; i++) {
                         NodeModel node = nodes[i];
-                        if (node.nodeData == null)
-                        {
-                            nodes.Remove(node);
-                            i--;
-                            continue;
-                        }
+
                         // initialize the node...
                         node.Initialize();
 
                         // find the acompanying nodeData serializedProperty and set it...
                         SerializedProperty nodeSerializedData = nodesProperty.GetArrayElementAtIndex(i);
                         node.SetData(nodeSerializedData);
-                        
-                        if(dataToViewLookup.ContainsKey(node.nodeData)) continue;
 
                         // create a node controller for this node...
                         NodeController nodeController = new NodeController(node, this);
@@ -483,18 +476,63 @@ namespace NewGraph {
                 graphView.ForEachNodeDo((node) => {
                     NodeView nodeView = node as NodeView;
 
-                    // go through every port
+                    // Pass 1: Iterate every OUTPUT port on this node.
+                    // The output port's boundProperty stores a reference to the connected node's data.
                     foreach (PortView port in nodeView.outputPorts) {
-                        // get the real object value of the port
                         object value = port.boundProperty.managedReferenceValue;
-                        // if the value is not null...
-                        if (value != null) {
-                            // check if we can find the corresponding node in our lookup
-                            if (dataToViewLookup.ContainsKey(value)) {
-                                // if we found it, we know that the port must be the input port, so we can draw the connection
-                                NodeView otherView = dataToViewLookup[value];
-                                if (otherView.controller.nodeItem.nodeData == value) {
-                                    ConnectPorts(port, otherView.inputPort);
+                        if (value == null) continue;
+
+                        if (!dataToViewLookup.ContainsKey(value)) continue;
+                        NodeView targetView = dataToViewLookup[value];
+
+                        // Try primary (NodeAttribute) input port first
+                        if (targetView.inputPort != null) {
+                            ConnectPorts(port, targetView.inputPort);
+                        } else {
+                            // Fall back to field-defined extra input ports.
+                            // The stored value IS the target node's nodeData, so we match by
+                            // checking whether the port's type is compatible — the actual field
+                            // reference lives on the OUTPUT port side, not the input port side.
+                            foreach (PortView extraInput in targetView.inputPorts) {
+                                if (extraInput.connectableTypes.Contains(port.type) ||
+                                    port.connectableTypes.Contains(extraInput.type)) {
+                                    ConnectPorts(port, extraInput);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Pass 2: Iterate every field-defined INPUT port on this node.
+                    // These ports store a reference to the upstream node's data in their own field.
+                    // We need to find the correct output port on the upstream node to draw the edge.
+                    foreach (PortView inputPort in nodeView.inputPorts) {
+                        object value = inputPort.boundProperty.managedReferenceValue;
+                        if (value == null) continue;
+
+                        if (!dataToViewLookup.ContainsKey(value)) continue;
+                        NodeView sourceView = dataToViewLookup[value];
+
+                        // Find the output port on the source node whose stored value equals
+                        // this node's nodeData — that's the edge that was saved for this input.
+                        bool connected = false;
+                        foreach (PortView outputPort in sourceView.outputPorts) {
+                            if (outputPort.boundProperty.managedReferenceValue == nodeView.controller.nodeItem.nodeData) {
+                                ConnectPorts(outputPort, inputPort);
+                                connected = true;
+                                break;
+                            }
+                        }
+
+                        // If no output port on the source has THIS node's data, the connection
+                        // data is stored only on the input side (self-contained input port pattern).
+                        // In that case we connect to the source node's primary output-like port by type.
+                        if (!connected) {
+                            foreach (PortView outputPort in sourceView.outputPorts) {
+                                if (inputPort.connectableTypes.Contains(outputPort.type) ||
+                                    outputPort.connectableTypes.Contains(inputPort.type)) {
+                                    ConnectPorts(outputPort, inputPort);
+                                    break;
                                 }
                             }
                         }
@@ -503,7 +541,7 @@ namespace NewGraph {
 
                 isLoading = false;
 				OnGraphLoaded?.Invoke(this.graphData);
-                isGraphLoaded = true;
+
 				Logger.Log("data loaded");
             });
         }

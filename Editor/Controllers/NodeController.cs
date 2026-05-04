@@ -116,6 +116,12 @@ namespace NewGraph {
                 action(propertyBag.inputPort, nodeDataProperty);
             }
         }
+        
+        public void DoForEachInputPortProperty(Action<PortInfo, SerializedProperty> action) {
+            DoForEachPortPropertyBase(ref propertyBag.inputPorts, action);
+        }
+
+        public SerializedProperty GetNodeDataProperty() => nodeDataProperty;
 
         public void DoForNameProperty(Action<SerializedProperty> action) {
             action(nodeItem.GetNameSerializedProperty());
