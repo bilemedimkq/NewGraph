@@ -445,6 +445,12 @@ namespace NewGraph {
                     // go over every node...
                     for (int i = 0; i < nodes.Count; i++) {
                         NodeModel node = nodes[i];
+                        if (node.nodeData == null)
+                        {
+                            nodes.Remove(node);
+                            i--;
+                            continue;
+                        }
 
                         // initialize the node...
                         node.Initialize();
