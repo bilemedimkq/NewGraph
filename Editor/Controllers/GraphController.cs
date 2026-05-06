@@ -14,10 +14,10 @@ namespace NewGraph {
     public class GraphController {
 
 		public event Action<List<NodeModel>> OnNodesPasted;
-		public event Action<IGraphModelData> OnGraphLoaded;
+        public event Action<IGraphModelData> OnGraphLoaded;
+        public static event Action<IGraphModelData> OnGraphLoadedGlobal;
         public event Action<IGraphModelData> OnBeforeGraphLoaded;
 		public static event Action<NodeView> OnNodeSelected;
-        // publics EventHandler<NodeView> test;
         
 		public IGraphModelData graphData = null;
         public CopyPasteHandler copyPasteHandler = new CopyPasteHandler();
@@ -29,6 +29,7 @@ namespace NewGraph {
         private EdgeDropMenu edgeDropMenu;
         private Dictionary<Actions, Action<object>> internalActions;
         private Dictionary<object, NodeView> dataToViewLookup = new Dictionary<object, NodeView>();
+        public IEnumerable<NodeView> NodeViews =>  dataToViewLookup.Values;
         public bool isGraphLoaded { get; protected set; }
 
         public Vector2 GetViewScale() {
@@ -546,7 +547,8 @@ namespace NewGraph {
                 });
 
                 isLoading = false;
-				OnGraphLoaded?.Invoke(this.graphData);
+                OnGraphLoaded?.Invoke(this.graphData);
+				OnGraphLoadedGlobal?.Invoke(this.graphData);
 
 				Logger.Log("data loaded");
             });
