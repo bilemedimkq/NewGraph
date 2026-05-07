@@ -257,8 +257,12 @@ namespace NewGraph {
             void ResetEdge(BaseEdge edge)
             {
                 PortView outputPort = edge.GetOutputPort() as PortView;
-                outputPort.Disconnect(edge);
                 PortView inputPort = edge.GetInputPort() as PortView;
+                
+                // Clear reference based on port type
+          
+                outputPort.Disconnect(edge);
+                
                 if(inputPort.m_Connections.Count == 1) {
                     inputPort.Disconnect(edge);
                 } 
@@ -407,6 +411,7 @@ namespace NewGraph {
         /// <param name="graphData"></param>
         private void Load(IGraphModelData graphData) {
 			OnBeforeGraphLoaded?.Invoke(graphData);
+            graphData.DeleteUnValidAssignments();
 
 			// return early if we are already in the process of loading a graph...
 			if (isLoading) {

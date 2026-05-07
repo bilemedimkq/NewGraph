@@ -17,7 +17,7 @@ namespace NewGraph {
         private int id;
 
         public List<NodeModel> Nodes => baseModel.nodes;
-
+        public void DeleteUnValidAssignments() => ScriptableGraphModel.DeleteUnValidAssignmentsMethod(Nodes);
 #if UNITY_EDITOR
         private const string lastOpenedMonoGraphPrefsKey = nameof(NewGraph) + "." + nameof(lastOpenedMonoGraphPrefsKey);
 
@@ -46,6 +46,8 @@ namespace NewGraph {
                 return baseModel.baseObject;
             }
         }
+
+
 
         public string GUID => CreateID().ToString();
 

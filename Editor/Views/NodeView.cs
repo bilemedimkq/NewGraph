@@ -123,7 +123,7 @@ namespace NewGraph {
 
         private void CreateExtraInputPortUI(PortInfo info, SerializedProperty property) {
             PortView port = CreatePortUI(info, property);
-            port.isFieldDefinedInputPort = true;
+            port.isFieldDefinedExtraInputPort = true;
             inputPorts.Add(port);
         }
         

@@ -5,6 +5,7 @@ using UnityEngine;
 namespace NewGraph {
     public interface IGraphModelData {
         public List<NodeModel> Nodes { get; }
+        public void DeleteUnValidAssignments();
 #if UNITY_EDITOR
         public string GUID { get; }
         public List<NodeModel> UtilityNodes { get; }

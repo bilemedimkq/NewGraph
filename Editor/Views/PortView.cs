@@ -14,7 +14,7 @@ namespace NewGraph {
         public SerializedProperty boundProperty;
         public SerializedProperty nodeDataSerializedProperty;
         public List<Type> connectableTypes;
-        public bool isFieldDefinedInputPort = false;
+        public bool isFieldDefinedExtraInputPort = false;
 
         private Action connectionChangedCallback;
         private Func<Type,Type, bool> isValidConnectionCheck;
@@ -38,6 +38,18 @@ namespace NewGraph {
             connectionChangedCallback();
         }
 
+        public override void Disconnect(BaseEdge edge)
+        {
+            if (edge.GetInputPort() is PortView inputPort && inputPort.isFieldDefinedExtraInputPort) {
+                // For field-defined extra input ports, clear the input port's reference
+                if (inputPort.boundProperty != null) {
+                    inputPort.boundProperty.managedReferenceValue = null;
+                    inputPort.boundProperty.serializedObject.ApplyModifiedProperties();
+                }
+            } 
+            base.Disconnect(edge);
+        }
+
         public override void Connect(BaseEdge edge) {
             base.Connect(edge);
             if (edge.Input != null && edge.Output != null) {
@@ -45,7 +57,7 @@ namespace NewGraph {
                 PortView inputPort = edge.Input as PortView;
                 PortView outputPort = edge.Output as PortView;
 
-                if (inputPort.isFieldDefinedInputPort) {
+                if (inputPort.isFieldDefinedExtraInputPort) {
                     // Field-defined input port: the INPUT field stores the upstream node reference.
                     // We use the OUTPUT node's nodeDataSerializedProperty (the node's own managed ref)
                     // so we get the correct source node ID — not the (possibly empty) output field value.
